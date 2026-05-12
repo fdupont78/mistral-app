@@ -27,7 +27,5 @@ git clone git@github.com:fdupont78/mistral-app.git
 
 cd mistral_app
 uv sync
-uv run python main.py
-
-
+uv run streamlit run frontend.py --server.address 0.0.0.0 --server.port 8501 --server.corsAllowedOrigins "RUNPOD_ID-8501.proxy.runpod.net"
 
