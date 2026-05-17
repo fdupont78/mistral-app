@@ -31,6 +31,7 @@ if [[ "$CURRENT_BRANCH" == "$DEFAULT_BRANCH" || "$CURRENT_BRANCH" == "main" || "
     exit 1
 fi
 
+
 # Check if there are commits to push
 if [ "$(git cherry -v "$DEFAULT_BRANCH" 2>/dev/null | wc -l)" -eq 0 ]; then
     echo "Error: No commits to push. Your branch is up to date with main."
