@@ -1,0 +1,5 @@
+name: create-pr
+version: 1.0.0
+description: Create a GitHub Pull Request with a single commit from the current branch
+author: Mistral Vibe
+license: MIT

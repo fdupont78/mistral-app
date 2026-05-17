@@ -80,6 +80,15 @@ def generate_response(messages: List[Dict[str, str]], max_new_tokens: int = 512,
     return response.strip()
 
 
+def generate_response_dry_run(messages: List[Dict[str, str]], **kwargs) -> str:
+    """
+    Generate a dry run response without loading the actual model.
+    Useful for debugging and testing without GPU/model requirements.
+    """
+    user_message = messages[-1]['content'] if messages else ""
+    return f"[DRY RUN] Mock response to: {user_message[:100]}..." if len(user_message) > 100 else f"[DRY RUN] Mock response to: {user_message}"
+
+
 def chat_completion(messages: List[Dict[str, str]], **kwargs) -> Dict[str, str]:
     """
     Generate a chat completion response.
