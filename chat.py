@@ -4,7 +4,7 @@ Provides interactive chat with conversation persistence.
 """
 import sys
 from conversation import Conversation
-from model import generate_response
+from model import generate_response, generate_response_dry_run
 from database import init_db
 from datetime import datetime
 
@@ -74,8 +74,12 @@ def handle_load(conversation_id: int) -> Conversation:
         return None
 
 
-def interactive_chat():
-    """Run the interactive chat CLI."""
+def interactive_chat(dry_run: bool = False):
+    """Run the interactive chat CLI.
+    
+    Args:
+        dry_run: If True, use mock responses instead of the actual model.
+    """
     init_db()
     
     current_conversation: Conversation = None
@@ -165,7 +169,10 @@ def interactive_chat():
             # Get model response
             print("\n[Thinking...]")
             history = current_conversation.get_history_for_model()
-            response = generate_response(history)
+            if dry_run:
+                response = generate_response_dry_run(history)
+            else:
+                response = generate_response(history)
             
             # Add assistant message
             current_conversation.add_message("assistant", response)
@@ -186,4 +193,7 @@ def interactive_chat():
 
 
 if __name__ == "__main__":
-    interactive_chat()
+    # Check for --dry-run flag in command line arguments
+    import sys
+    dry_run = "--dry-run" in sys.argv
+    interactive_chat(dry_run=dry_run)

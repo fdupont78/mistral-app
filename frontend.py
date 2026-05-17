@@ -9,7 +9,8 @@ from database import (
     init_db, list_conversations, get_conversation, get_messages,
     create_conversation, add_message, delete_conversation, update_conversation_title
 )
-from model import generate_response
+import os
+from model import generate_response, generate_response_dry_run
 
 
 def init_session():
@@ -150,7 +151,11 @@ def main():
                 
                 # Generate response
                 try:
-                    response = generate_response(history)
+                    # Use dry-run mode if environment variable is set
+                    if os.environ.get('MISTRAL_DRY_RUN', '').lower() in ('1', 'true', 'yes'):
+                        response = generate_response_dry_run(history)
+                    else:
+                        response = generate_response(history)
                     
                     # Clear thinking, show response
                     thinking_placeholder.empty()

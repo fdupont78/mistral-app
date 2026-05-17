@@ -19,14 +19,19 @@ from conversation import Conversation
 def main():
     init_db()
     
-    if len(sys.argv) < 2:
+    # Check for --dry-run flag in arguments
+    dry_run = "--dry-run" in sys.argv
+    # Remove --dry-run from argv for command parsing
+    argv = [arg for arg in sys.argv if arg != "--dry-run"]
+    
+    if len(argv) < 2:
         # Default: start interactive chat
-        interactive_chat()
+        interactive_chat(dry_run=dry_run)
     else:
-        command = sys.argv[1].lower()
+        command = argv[1].lower()
         
         if command == "chat":
-            interactive_chat()
+            interactive_chat(dry_run=dry_run)
         
         elif command == "list":
             list_conversations()
@@ -44,11 +49,13 @@ def main():
                 print("Error: Conversation ID must be a number")
         
         elif command in ["help", "--help", "-h"]:
-            print("Usage: python main.py [command]")
+            print("Usage: python main.py [command] [--dry-run]")
             print("\nCommands:")
             print("  chat       - Start interactive chat")
             print("  list       - List all conversations")
             print("  load <id>  - Load and display a conversation")
+            print("\nOptions:")
+            print("  --dry-run  - Use mock responses instead of loading the model (for debugging)")
             print("\nIn interactive mode:")
             print("  /new      - Start new conversation")
             print("  /list     - List conversations")
