@@ -1,23 +1,29 @@
 #!/usr/bin/env python3
 """
-Mistral 3B Chat Application
+Mistral Chat Application
 
 Entry point for the chat application.
-Run with: python main.py or uv run python main.py
+Run with: python -m src.main or uv run python src/main.py
 
 Commands:
-  python main.py chat    - Start interactive chat
-  python main.py list   - List all conversations
-  python main.py load <id> - Load a conversation
+  python src/main.py chat    - Start interactive chat
+  python src/main.py list   - List all conversations
+  python src/main.py load <id> - Load a conversation
 """
 import sys
-from database import init_db
-from chat import interactive_chat, list_conversations, handle_load
-from conversation import Conversation
+import os
+
+# Add src to path
+sys.path.insert(0, os.path.dirname(__file__))
+
+from src.core.database import get_database_manager
+from src.cli.chat import interactive_chat, list_conversations, handle_load
+from src.core.conversation import Conversation
 
 
 def main():
-    init_db()
+    # Initialize database
+    get_database_manager().init_db()
     
     # Check for --dry-run flag in arguments
     dry_run = "--dry-run" in sys.argv
@@ -49,7 +55,7 @@ def main():
                 print("Error: Conversation ID must be a number")
         
         elif command in ["help", "--help", "-h"]:
-            print("Usage: python main.py [command] [--dry-run]")
+            print("Usage: python -m src.main [command] [--dry-run]")
             print("\nCommands:")
             print("  chat       - Start interactive chat")
             print("  list       - List all conversations")
@@ -66,7 +72,7 @@ def main():
         
         else:
             print(f"Unknown command: {command}")
-            print("Use 'python main.py help' for usage")
+            print("Use 'python -m src.main help' for usage")
 
 
 if __name__ == "__main__":

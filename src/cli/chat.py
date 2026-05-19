@@ -1,18 +1,18 @@
 """
-CLI chat interface for Mistral 3B model.
+CLI chat interface for Mistral model.
 Provides interactive chat with conversation persistence.
 """
 import sys
-from conversation import Conversation
-from model import generate_response, generate_response_dry_run, DEFAULT_GEN_PARAMS, GEN_PARAM_DESCRIPTIONS
-from database import init_db
+from src.core.conversation import Conversation
+from src.core.model import get_model_manager, DEFAULT_GEN_PARAMS, GEN_PARAM_DESCRIPTIONS
+from src.core.database import get_database_manager
 from datetime import datetime
 
 
 def print_welcome():
     """Print welcome message."""
     print("\n" + "=" * 60)
-    print("  Mistral 3B Chat Application")
+    print("  Mistral Chat Application")
     print("=" * 60)
     print("\nCommands:")
     print("  /new         - Start a new conversation")
@@ -90,8 +90,8 @@ def set_gen_param(gen_params: dict, param: str, value_str: str) -> tuple:
     Set a generation parameter from a string value.
     Returns (updated_params, error_message)
     """
-    if param not in DEFAULT_GEN_PARAMS:
-        available = ", ".join(DEFAULT_GEN_PARAMS.keys())
+    if param not in DEFAULT_GEN_PARAMS.to_dict():
+        available = ", ".join(DEFAULT_GEN_PARAMS.to_dict().keys())
         return gen_params, f"Unknown parameter. Available: {available}"
     
     try:
@@ -110,17 +110,19 @@ def set_gen_param(gen_params: dict, param: str, value_str: str) -> tuple:
 
 
 def interactive_chat(dry_run: bool = False):
-    """Run the interactive chat CLI.
+    """
+    Run the interactive chat CLI.
     
     Args:
         dry_run: If True, use mock responses instead of the actual model.
     """
-    init_db()
+    # Initialize database
+    get_database_manager().init_db()
     
     current_conversation: Conversation = None
     
     # Initialize generation parameters with defaults
-    gen_params = DEFAULT_GEN_PARAMS.copy()
+    gen_params = DEFAULT_GEN_PARAMS.to_dict().copy()
     
     print_welcome()
     print_gen_params(gen_params)
@@ -224,10 +226,12 @@ def interactive_chat(dry_run: bool = False):
             # Get model response
             print("\n[Thinking...]")
             history = current_conversation.get_history_for_model()
+            model_manager = get_model_manager()
+            
             if dry_run:
-                response = generate_response_dry_run(history, **gen_params)
+                response = model_manager.generate_response_dry_run(history, **gen_params)
             else:
-                response = generate_response(history, **gen_params)
+                response = model_manager.generate_response(history, **gen_params)
             
             # Add assistant message
             current_conversation.add_message("assistant", response)
@@ -245,10 +249,3 @@ def interactive_chat(dry_run: bool = False):
             print(f"\nError: {e}")
             import traceback
             traceback.print_exc()
-
-
-if __name__ == "__main__":
-    # Check for --dry-run flag in command line arguments
-    import sys
-    dry_run = "--dry-run" in sys.argv
-    interactive_chat(dry_run=dry_run)

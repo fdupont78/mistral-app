@@ -1,20 +1,24 @@
 """
-Streamlit frontend for Mistral 3B Chat Application.
+Streamlit frontend for Mistral Chat Application.
 
-Run with: streamlit run frontend.py
+Run with: streamlit run src/web/frontend.py
 """
 import streamlit as st
 from datetime import datetime
-from database import (
-    init_db, list_conversations, get_conversation, get_messages,
-    create_conversation, add_message, delete_conversation, update_conversation_title
-)
 import os
-from model import (
-    generate_response, generate_response_dry_run, 
-    DEFAULT_GEN_PARAMS, GEN_PARAM_DESCRIPTIONS,
-    QUANTIZATION_METHODS, load_model, is_model_loaded, 
-    is_model_loading, get_model_status
+import sys
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
+from src.core.database import get_database_manager
+from src.core.conversation import Conversation
+from src.core.model import (
+    get_model_manager,
+    DEFAULT_GEN_PARAMS,
+    GEN_PARAM_DESCRIPTIONS,
+    QUANTIZATION_METHODS,
+    QUANTIZATION_DESCRIPTIONS
 )
 
 
@@ -29,21 +33,22 @@ def init_session():
     if "generating" not in st.session_state:
         st.session_state.generating = False
     # Initialize generation parameters with defaults
-    for param, default_val in DEFAULT_GEN_PARAMS.items():
+    for param, default_val in DEFAULT_GEN_PARAMS.to_dict().items():
         if param not in st.session_state:
             st.session_state[param] = default_val
 
 
-def load_conversation(conv_id):
+def load_conversation(conv_id: int) -> list:
     """Load conversation messages."""
-    messages = get_messages(conv_id)
+    manager = get_database_manager()
+    messages = manager.get_messages(conv_id)
     return [
         {"role": msg[2], "content": msg[3], "timestamp": msg[4]}
         for msg in messages
     ]
 
 
-def format_timestamp(ts):
+def format_timestamp(ts: str) -> str:
     """Format timestamp for display."""
     if not ts:
         return ""
@@ -55,28 +60,23 @@ def format_timestamp(ts):
 
 
 def main():
-    init_db()
+    # Initialize database and session
+    get_database_manager().init_db()
     init_session()
     
     st.set_page_config(
-        page_title="Mistral 3B Chat",
+        page_title="Mistral Chat",
         page_icon="💬",
         layout="wide"
     )
     
-    st.title("💬 Mistral 3B Chat")
+    st.title("💬 Mistral Chat")
     
     # Sidebar: Model Loading
     st.sidebar.header("🤖 Model")
     
     # Quantization selection
     quant_options = list(QUANTIZATION_METHODS.keys())
-    quant_descriptions = {
-        'none': 'No quantization (full precision, ~15GB VRAM for 3B)',
-        '8bit': '8-bit quantization (~6-8GB VRAM)',
-        '4bit': '4-bit quantization (~3-4GB VRAM)',
-        'fp8': 'FP8 quantization (NVIDIA GPUs, ~4GB VRAM)'
-    }
     
     if 'quant_method' not in st.session_state:
         st.session_state.quant_method = 'fp8'
@@ -88,7 +88,7 @@ def main():
         "Quantization",
         options=quant_options,
         index=quant_options.index(st.session_state.quant_method),
-        help="\n".join(f"{opt}: {quant_descriptions.get(opt, '')}" for opt in quant_options)
+        help="\n".join(f"{opt}: {QUANTIZATION_DESCRIPTIONS.get(opt, '')}" for opt in quant_options)
     )
     
     st.session_state.auto_load_model = st.sidebar.checkbox(
@@ -105,23 +105,24 @@ def main():
         st.sidebar.success("🎭 Dry-run mode: Mock responses only (no model loading)")
     
     # Auto-load model if enabled and not already loaded (skip in dry-run)
+    model_manager = get_model_manager()
     if (st.session_state.auto_load_model and not dry_run_enabled and 
-        not is_model_loaded() and not is_model_loading()):
+        not model_manager.is_loaded() and not model_manager.is_loading()):
         with st.spinner("Loading model automatically... This may take a few minutes."):
-            load_model(quant_method=st.session_state.quant_method)
+            model_manager.load_model(quant_method=st.session_state.quant_method)
         st.rerun()
     
     # Model loading controls
     col1, col2 = st.sidebar.columns(2)
     with col1:
         if st.button("🚀 Load Model", use_container_width=True, 
-                     disabled=is_model_loaded() or is_model_loading() or dry_run_enabled):
+                     disabled=model_manager.is_loaded() or model_manager.is_loading() or dry_run_enabled):
             with st.spinner("Loading model... This may take a few minutes."):
-                load_model(quant_method=st.session_state.quant_method)
+                model_manager.load_model(quant_method=st.session_state.quant_method)
             st.rerun()
     
     with col2:
-        model_status = get_model_status()
+        model_status = model_manager.get_status()
         st.sidebar.info(model_status)
     
     st.sidebar.markdown("---")
@@ -131,13 +132,15 @@ def main():
     
     # New conversation button
     if st.sidebar.button("🆕 New Chat", use_container_width=True):
-        conv_id = create_conversation("New Chat")
+        manager = get_database_manager()
+        conv_id = manager.create_conversation("New Chat")
         st.session_state.current_conv_id = conv_id
         st.session_state.new_conv_title = "New Chat"
         st.rerun()
     
     # List existing conversations
-    conversations = list_conversations(limit=50)
+    manager = get_database_manager()
+    conversations = manager.list_conversations(limit=50)
     
     if conversations:
         st.sidebar.markdown("---")
@@ -153,7 +156,7 @@ def main():
                         st.rerun()
                 with col2:
                     if st.button("🗑️", key=f"del_{conv_id}"):
-                        delete_conversation(conv_id)
+                        manager.delete_conversation(conv_id)
                         if st.session_state.current_conv_id == conv_id:
                             st.session_state.current_conv_id = None
                         st.rerun()
@@ -232,7 +235,7 @@ def main():
     
     # Main chat area
     if st.session_state.current_conv_id:
-        conv_data = get_conversation(st.session_state.current_conv_id)
+        conv_data = manager.get_conversation(st.session_state.current_conv_id)
         if conv_data:
             conv_id, title, created_at, updated_at = conv_data
             
@@ -243,7 +246,7 @@ def main():
                 key="title_input"
             )
             if new_title != st.session_state.new_conv_title:
-                update_conversation_title(conv_id, new_title)
+                manager.update_conversation_title(conv_id, new_title)
                 st.session_state.new_conv_title = new_title
                 st.rerun()
             
@@ -268,7 +271,7 @@ def main():
             st.markdown("---")
             
             # Check if model is ready
-            model_ready = is_model_loaded() or dry_run_enabled
+            model_ready = model_manager.is_loaded() or dry_run_enabled
             
             if not model_ready:
                 st.warning("⚠️ Please load the model first using the 'Load Model' button in the sidebar.")
@@ -281,7 +284,7 @@ def main():
             
             if user_input:
                 # Add user message to DB
-                add_message(conv_id, "user", user_input)
+                manager.add_message(conv_id, "user", user_input)
                 
                 # Display user message
                 with st.chat_message("user"):
@@ -310,17 +313,17 @@ def main():
                     }
                     
                     # Use dry-run mode if environment variable is set
-                    if os.environ.get('MISTRAL_DRY_RUN', '').lower() in ('1', 'true', 'yes'):
-                        response = generate_response_dry_run(history, **gen_kwargs)
+                    if dry_run_enabled:
+                        response = model_manager.generate_response_dry_run(history, **gen_kwargs)
                     else:
-                        response = generate_response(history, **gen_kwargs)
+                        response = model_manager.generate_response(history, **gen_kwargs)
                     
                     # Clear thinking, show response
                     thinking_placeholder.empty()
                     st.markdown(response)
                     
                     # Save assistant response to DB
-                    add_message(conv_id, "assistant", response)
+                    manager.add_message(conv_id, "assistant", response)
                     
                     # Rerun to update message display
                     st.rerun()
