@@ -1,7 +1,7 @@
 [project]
 name = "mistral-app"
-version = "0.1.0"
-description = "Mistral 3B chat application with conversation history"
+version = "0.2.0"
+description = "Mistral chat application with conversation history"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -11,7 +11,33 @@ dependencies = [
     "transformers==4.45.2",
     "accelerate",
     "streamlit",
+    "pytest",
+    "pytest-cov",
+    "pytest-mock",
 ]
 
 [tool.uv.sources]
 transformers = { git = "https://github.com/huggingface/transformers" }
+
+[tool.pytest.ini_options]
+python_files = ["test_*.py", "*_test.py"]
+addopts = "-v --tb=short"
+testpaths = ["tests"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "e2e: marks end-to-end tests",
+    "unit: marks unit tests",
+    "integration: marks integration tests",
+]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]

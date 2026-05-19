@@ -1,18 +1,18 @@
 """
-CLI chat interface for Mistral 3B model.
+CLI chat interface for Mistral model.
 Provides interactive chat with conversation persistence.
 """
 import sys
-from conversation import Conversation
-from model import generate_response, generate_response_dry_run
-from database import init_db
+from src.core.conversation import Conversation
+from src.core.model import get_model_manager, DEFAULT_GEN_PARAMS, GEN_PARAM_DESCRIPTIONS
+from src.core.database import get_database_manager
 from datetime import datetime
 
 
 def print_welcome():
     """Print welcome message."""
     print("\n" + "=" * 60)
-    print("  Mistral 3B Chat Application")
+    print("  Mistral Chat Application")
     print("=" * 60)
     print("\nCommands:")
     print("  /new         - Start a new conversation")
@@ -20,6 +20,8 @@ def print_welcome():
     print("  /load <id>   - Load conversation by ID")
     print("  /title <t>   - Set conversation title")
     print("  /delete      - Delete current conversation")
+    print("  /set <p> <v> - Set generation parameter (e.g., /set temperature 0.9)")
+    print("  /params      - Show current generation parameters")
     print("  /quit        - Exit the application")
     print("  /help        - Show this help")
     print("=" * 60 + "\n")
@@ -74,16 +76,56 @@ def handle_load(conversation_id: int) -> Conversation:
         return None
 
 
+def print_gen_params(gen_params: dict):
+    """Print current generation parameters."""
+    print("\n  Generation Parameters:")
+    for param, value in gen_params.items():
+        desc = GEN_PARAM_DESCRIPTIONS.get(param, "")
+        print(f"    {param}={value} - {desc}")
+    print()
+
+
+def set_gen_param(gen_params: dict, param: str, value_str: str) -> tuple:
+    """
+    Set a generation parameter from a string value.
+    Returns (updated_params, error_message)
+    """
+    if param not in DEFAULT_GEN_PARAMS.to_dict():
+        available = ", ".join(DEFAULT_GEN_PARAMS.to_dict().keys())
+        return gen_params, f"Unknown parameter. Available: {available}"
+    
+    try:
+        if param in ['do_sample']:
+            # Boolean
+            gen_params[param] = value_str.lower() in ('true', '1', 'yes', 'on')
+        elif param in ['max_new_tokens', 'top_k', 'num_return_sequences']:
+            # Integer
+            gen_params[param] = int(value_str)
+        else:
+            # Float
+            gen_params[param] = float(value_str)
+        return gen_params, None
+    except ValueError as e:
+        return gen_params, f"Invalid value for {param}: {e}"
+
+
 def interactive_chat(dry_run: bool = False):
-    """Run the interactive chat CLI.
+    """
+    Run the interactive chat CLI.
     
     Args:
         dry_run: If True, use mock responses instead of the actual model.
     """
-    init_db()
+    # Initialize database
+    get_database_manager().init_db()
     
     current_conversation: Conversation = None
+    
+    # Initialize generation parameters with defaults
+    gen_params = DEFAULT_GEN_PARAMS.to_dict().copy()
+    
     print_welcome()
+    print_gen_params(gen_params)
     
     # Create a default conversation
     current_conversation = Conversation.create("New Chat")
@@ -147,6 +189,21 @@ def interactive_chat(dry_run: bool = False):
                         print("Error: No active conversation")
                     continue
                 
+                elif cmd == "set" and len(args) >= 2:
+                    param_name = args[0]
+                    param_value = " ".join(args[1:])
+                    gen_params, error = set_gen_param(gen_params, param_name, param_value)
+                    if error:
+                        print(f"Error: {error}")
+                    else:
+                        print(f"Set {param_name} = {gen_params[param_name]}")
+                    print_gen_params(gen_params)
+                    continue
+                
+                elif cmd == "params":
+                    print_gen_params(gen_params)
+                    continue
+                
                 elif cmd in ["quit", "exit", "q"]:
                     print("\nGoodbye!")
                     sys.exit(0)
@@ -169,10 +226,12 @@ def interactive_chat(dry_run: bool = False):
             # Get model response
             print("\n[Thinking...]")
             history = current_conversation.get_history_for_model()
+            model_manager = get_model_manager()
+            
             if dry_run:
-                response = generate_response_dry_run(history)
+                response = model_manager.generate_response_dry_run(history, **gen_params)
             else:
-                response = generate_response(history)
+                response = model_manager.generate_response(history, **gen_params)
             
             # Add assistant message
             current_conversation.add_message("assistant", response)
@@ -190,10 +249,3 @@ def interactive_chat(dry_run: bool = False):
             print(f"\nError: {e}")
             import traceback
             traceback.print_exc()
-
-
-if __name__ == "__main__":
-    # Check for --dry-run flag in command line arguments
-    import sys
-    dry_run = "--dry-run" in sys.argv
-    interactive_chat(dry_run=dry_run)
