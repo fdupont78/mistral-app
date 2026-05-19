@@ -61,6 +61,7 @@ def generate_response(messages: List[Dict[str, str]], max_new_tokens: int = 512,
     )
     
     inputs = tokenizer(text, return_tensors='pt').to('cuda')
+    input_length = inputs.input_ids.shape[1]
     
     outputs = model.generate(
         **inputs,
@@ -70,12 +71,8 @@ def generate_response(messages: List[Dict[str, str]], max_new_tokens: int = 512,
         pad_token_id=tokenizer.eos_token_id
     )
     
-    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    
-    # Remove the input text from the response
-    # Find where the actual response starts
-    if text in response:
-        response = response.replace(text, "")
+    # Only decode the newly generated tokens (skip input tokens)
+    response = tokenizer.decode(outputs[0][input_length:], skip_special_tokens=True)
     
     return response.strip()
 
