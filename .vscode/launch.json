@@ -16,18 +16,36 @@
             "type": "python",
             "request": "launch",
             "module": "streamlit",
-            "args": ["run", "frontend.py"],
+            "args": ["run", "src/web/frontend.py"],
             "env": {
                 "MISTRAL_DRY_RUN": "1"
             },
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "justMyCode": false
         },
         {
             "name": "Streamlit: Run (Normal Mode)",
             "type": "python",
             "request": "launch",
             "module": "streamlit",
-            "args": ["run", "frontend.py"],
+            "args": ["run", "src/web/frontend.py"],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "CLI: Chat (Dry Run)",
+            "type": "python",
+            "request": "launch",
+            "module": "src.main",
+            "args": ["chat", "--dry-run"],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "CLI: List Conversations",
+            "type": "python",
+            "request": "launch",
+            "module": "src.main",
+            "args": ["list"],
             "console": "integratedTerminal"
         }
     ]
