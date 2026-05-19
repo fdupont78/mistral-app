@@ -10,9 +10,19 @@ from typing import List, Dict, Optional
 # Model configuration (reuse from request.py)
 MODEL_NAME = '/workspace/Ministral-3-3B-Instruct-2512'
 
+# Quantization options
+QUANTIZATION_METHODS = {
+    'none': None,
+    '8bit': BitsAndBytesConfig(load_in_8bit=True),
+    '4bit': BitsAndBytesConfig(load_in_4bit=True),
+    'fp8': FineGrainedFP8Config(dequantize=True),
+}
+
 # Initialize tokenizer and model (lazy loading)
 _tokenizer = None
 _model = None
+_model_loading = False
+_model_loaded = False
 
 
 def get_tokenizer():
@@ -27,13 +37,71 @@ def get_model():
     """Get or initialize the model."""
     global _model
     if _model is None:
-        quant_config = BitsAndBytesConfig(load_in_8bit=True)
+        quant_config = QUANTIZATION_METHODS.get('fp8')  # Default to FP8
         _model = Mistral3ForConditionalGeneration.from_pretrained(
             MODEL_NAME,
             device_map="auto",
-            quantization_config=FineGrainedFP8Config(dequantize=True)
+            quantization_config=quant_config
         )
     return _model
+
+
+def load_model(quant_method: str = 'fp8', model_name: str = None):
+    """
+    Load the model with specified quantization method.
+    
+    Args:
+        quant_method: Quantization method ('none', '8bit', '4bit', 'fp8')
+        model_name: Model name/path (defaults to MODEL_NAME)
+    
+    Returns:
+        Tuple of (model, tokenizer)
+    """
+    global _model, _tokenizer, _model_loading, _model_loaded
+    
+    _model_loading = True
+    _model_loaded = False
+    
+    load_name = model_name or MODEL_NAME
+    
+    # Load tokenizer first
+    _tokenizer = AutoTokenizer.from_pretrained(load_name)
+    
+    # Get quantization config
+    quant_config = QUANTIZATION_METHODS.get(quant_method)
+    
+    # Load model
+    _model = Mistral3ForConditionalGeneration.from_pretrained(
+        load_name,
+        device_map="auto",
+        quantization_config=quant_config
+    )
+    
+    _model_loading = False
+    _model_loaded = True
+    
+    return _model, _tokenizer
+
+
+def is_model_loaded():
+    """Check if model is loaded."""
+    return _model is not None
+
+
+def is_model_loading():
+    """Check if model is currently loading."""
+    global _model_loading
+    return _model_loading
+
+
+def get_model_status():
+    """Get model loading status as string."""
+    if _model_loading:
+        return "Loading..."
+    elif _model_loaded:
+        return "Loaded ✓"
+    else:
+        return "Not loaded"
 
 
 # Default generation parameters for Mistral-3

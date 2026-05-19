@@ -10,7 +10,12 @@ from database import (
     create_conversation, add_message, delete_conversation, update_conversation_title
 )
 import os
-from model import generate_response, generate_response_dry_run, DEFAULT_GEN_PARAMS, GEN_PARAM_DESCRIPTIONS
+from model import (
+    generate_response, generate_response_dry_run, 
+    DEFAULT_GEN_PARAMS, GEN_PARAM_DESCRIPTIONS,
+    QUANTIZATION_METHODS, load_model, is_model_loaded, 
+    is_model_loading, get_model_status
+)
 
 
 def init_session():
@@ -60,6 +65,66 @@ def main():
     )
     
     st.title("💬 Mistral 3B Chat")
+    
+    # Sidebar: Model Loading
+    st.sidebar.header("🤖 Model")
+    
+    # Quantization selection
+    quant_options = list(QUANTIZATION_METHODS.keys())
+    quant_descriptions = {
+        'none': 'No quantization (full precision, ~15GB VRAM for 3B)',
+        '8bit': '8-bit quantization (~6-8GB VRAM)',
+        '4bit': '4-bit quantization (~3-4GB VRAM)',
+        'fp8': 'FP8 quantization (NVIDIA GPUs, ~4GB VRAM)'
+    }
+    
+    if 'quant_method' not in st.session_state:
+        st.session_state.quant_method = 'fp8'
+    
+    if 'auto_load_model' not in st.session_state:
+        st.session_state.auto_load_model = False
+    
+    st.session_state.quant_method = st.sidebar.selectbox(
+        "Quantization",
+        options=quant_options,
+        index=quant_options.index(st.session_state.quant_method),
+        help="\n".join(f"{opt}: {quant_descriptions.get(opt, '')}" for opt in quant_options)
+    )
+    
+    st.session_state.auto_load_model = st.sidebar.checkbox(
+        "Auto-load model on startup",
+        value=st.session_state.auto_load_model,
+        help="Automatically load the model when the app starts"
+    )
+    
+    # Check if in dry-run mode
+    dry_run_enabled = os.environ.get('MISTRAL_DRY_RUN', '').lower() in ('1', 'true', 'yes')
+    
+    # Show dry-run notice if enabled
+    if dry_run_enabled:
+        st.sidebar.success("🎭 Dry-run mode: Mock responses only (no model loading)")
+    
+    # Auto-load model if enabled and not already loaded (skip in dry-run)
+    if (st.session_state.auto_load_model and not dry_run_enabled and 
+        not is_model_loaded() and not is_model_loading()):
+        with st.spinner("Loading model automatically... This may take a few minutes."):
+            load_model(quant_method=st.session_state.quant_method)
+        st.rerun()
+    
+    # Model loading controls
+    col1, col2 = st.sidebar.columns(2)
+    with col1:
+        if st.button("🚀 Load Model", use_container_width=True, 
+                     disabled=is_model_loaded() or is_model_loading() or dry_run_enabled):
+            with st.spinner("Loading model... This may take a few minutes."):
+                load_model(quant_method=st.session_state.quant_method)
+            st.rerun()
+    
+    with col2:
+        model_status = get_model_status()
+        st.sidebar.info(model_status)
+    
+    st.sidebar.markdown("---")
     
     # Sidebar: Conversation list
     st.sidebar.header("Conversations")
@@ -201,9 +266,17 @@ def main():
             
             # Input area
             st.markdown("---")
+            
+            # Check if model is ready
+            model_ready = is_model_loaded() or dry_run_enabled
+            
+            if not model_ready:
+                st.warning("⚠️ Please load the model first using the 'Load Model' button in the sidebar.")
+            
             user_input = st.chat_input(
                 "Type your message here...",
-                key="chat_input"
+                key="chat_input",
+                disabled=not model_ready
             )
             
             if user_input:
