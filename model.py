@@ -36,14 +36,52 @@ def get_model():
     return _model
 
 
-def generate_response(messages: List[Dict[str, str]], max_new_tokens: int = 512, temperature: float = 0.7) -> str:
+# Default generation parameters for Mistral-3
+DEFAULT_GEN_PARAMS = {
+    'max_new_tokens': 512,
+    'temperature': 0.7,
+    'do_sample': True,
+    'top_k': 50,
+    'top_p': 0.92,
+    'repetition_penalty': 1.0,
+    'num_return_sequences': 1,
+}
+
+# Parameter descriptions for UI
+GEN_PARAM_DESCRIPTIONS = {
+    'max_new_tokens': 'Maximum new tokens to generate (higher = longer responses)',
+    'temperature': 'Randomness: 0.0=deterministic, 1.0+ = more creative/random',
+    'do_sample': 'Enable sampling (False = greedy/argmax decoding)',
+    'top_k': 'Keep only top-k highest probability tokens for sampling',
+    'top_p': 'Nucleus sampling: keep tokens with cumulative probability > p',
+    'repetition_penalty': 'Penalty for repeated tokens (1.0=no penalty, >1.0=discourage repetition)',
+    'num_return_sequences': 'Number of response sequences to generate',
+}
+
+
+def generate_response(
+    messages: List[Dict[str, str]],
+    max_new_tokens: int = DEFAULT_GEN_PARAMS['max_new_tokens'],
+    temperature: float = DEFAULT_GEN_PARAMS['temperature'],
+    do_sample: bool = DEFAULT_GEN_PARAMS['do_sample'],
+    top_k: int = DEFAULT_GEN_PARAMS['top_k'],
+    top_p: float = DEFAULT_GEN_PARAMS['top_p'],
+    repetition_penalty: float = DEFAULT_GEN_PARAMS['repetition_penalty'],
+    num_return_sequences: int = DEFAULT_GEN_PARAMS['num_return_sequences'],
+    **kwargs
+) -> str:
     """
     Generate a response from the model given a list of messages.
     
     Args:
         messages: List of message dicts with 'role' and 'content' keys
-        max_new_tokens: Maximum number of tokens to generate
-        temperature: Sampling temperature
+        max_new_tokens: Maximum number of new tokens to generate
+        temperature: Sampling temperature (0.0-2.0+)
+        do_sample: Whether to sample from distribution (vs greedy)
+        top_k: Number of top tokens to consider for sampling
+        top_p: Nucleus sampling probability threshold (0.0-1.0)
+        repetition_penalty: Penalty for repeated tokens
+        num_return_sequences: Number of sequences to generate
     
     Returns:
         Generated response text
@@ -52,8 +90,6 @@ def generate_response(messages: List[Dict[str, str]], max_new_tokens: int = 512,
     model = get_model()
     
     # Format messages for Mistral chat template
-    # Mistral expects: <s> [INST] user_message [/INST] assistant_message </s>
-    # For multi-turn, it continues with the pattern
     text = tokenizer.apply_chat_template(
         messages,
         tokenize=False,
@@ -67,11 +103,17 @@ def generate_response(messages: List[Dict[str, str]], max_new_tokens: int = 512,
         **inputs,
         max_new_tokens=max_new_tokens,
         temperature=temperature,
-        do_sample=True,
-        pad_token_id=tokenizer.eos_token_id
+        do_sample=do_sample,
+        top_k=top_k,
+        top_p=top_p,
+        repetition_penalty=repetition_penalty,
+        num_return_sequences=num_return_sequences,
+        pad_token_id=tokenizer.eos_token_id,
+        **kwargs
     )
     
     # Only decode the newly generated tokens (skip input tokens)
+    # For multiple sequences, just take the first one
     response = tokenizer.decode(outputs[0][input_length:], skip_special_tokens=True)
     
     return response.strip()
@@ -81,9 +123,15 @@ def generate_response_dry_run(messages: List[Dict[str, str]], **kwargs) -> str:
     """
     Generate a dry run response without loading the actual model.
     Useful for debugging and testing without GPU/model requirements.
+    Accepts same parameters as generate_response for API consistency.
     """
     user_message = messages[-1]['content'] if messages else ""
-    return f"[DRY RUN] Mock response to: {user_message[:100]}..." if len(user_message) > 100 else f"[DRY RUN] Mock response to: {user_message}"
+    params_str = ""
+    for k, v in kwargs.items():
+        if k != 'messages' and v is not None:
+            params_str += f" {k}={v}"
+    msg = f"[DRY RUN{params_str}] Mock response to: {user_message[:100]}..." if len(user_message) > 100 else f"[DRY RUN{params_str}] Mock response to: {user_message}"
+    return msg
 
 
 def chat_completion(messages: List[Dict[str, str]], **kwargs) -> Dict[str, str]:

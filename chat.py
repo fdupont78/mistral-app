@@ -4,7 +4,7 @@ Provides interactive chat with conversation persistence.
 """
 import sys
 from conversation import Conversation
-from model import generate_response, generate_response_dry_run
+from model import generate_response, generate_response_dry_run, DEFAULT_GEN_PARAMS, GEN_PARAM_DESCRIPTIONS
 from database import init_db
 from datetime import datetime
 
@@ -20,6 +20,8 @@ def print_welcome():
     print("  /load <id>   - Load conversation by ID")
     print("  /title <t>   - Set conversation title")
     print("  /delete      - Delete current conversation")
+    print("  /set <p> <v> - Set generation parameter (e.g., /set temperature 0.9)")
+    print("  /params      - Show current generation parameters")
     print("  /quit        - Exit the application")
     print("  /help        - Show this help")
     print("=" * 60 + "\n")
@@ -74,6 +76,39 @@ def handle_load(conversation_id: int) -> Conversation:
         return None
 
 
+def print_gen_params(gen_params: dict):
+    """Print current generation parameters."""
+    print("\n  Generation Parameters:")
+    for param, value in gen_params.items():
+        desc = GEN_PARAM_DESCRIPTIONS.get(param, "")
+        print(f"    {param}={value} - {desc}")
+    print()
+
+
+def set_gen_param(gen_params: dict, param: str, value_str: str) -> tuple:
+    """
+    Set a generation parameter from a string value.
+    Returns (updated_params, error_message)
+    """
+    if param not in DEFAULT_GEN_PARAMS:
+        available = ", ".join(DEFAULT_GEN_PARAMS.keys())
+        return gen_params, f"Unknown parameter. Available: {available}"
+    
+    try:
+        if param in ['do_sample']:
+            # Boolean
+            gen_params[param] = value_str.lower() in ('true', '1', 'yes', 'on')
+        elif param in ['max_new_tokens', 'top_k', 'num_return_sequences']:
+            # Integer
+            gen_params[param] = int(value_str)
+        else:
+            # Float
+            gen_params[param] = float(value_str)
+        return gen_params, None
+    except ValueError as e:
+        return gen_params, f"Invalid value for {param}: {e}"
+
+
 def interactive_chat(dry_run: bool = False):
     """Run the interactive chat CLI.
     
@@ -83,7 +118,12 @@ def interactive_chat(dry_run: bool = False):
     init_db()
     
     current_conversation: Conversation = None
+    
+    # Initialize generation parameters with defaults
+    gen_params = DEFAULT_GEN_PARAMS.copy()
+    
     print_welcome()
+    print_gen_params(gen_params)
     
     # Create a default conversation
     current_conversation = Conversation.create("New Chat")
@@ -147,6 +187,21 @@ def interactive_chat(dry_run: bool = False):
                         print("Error: No active conversation")
                     continue
                 
+                elif cmd == "set" and len(args) >= 2:
+                    param_name = args[0]
+                    param_value = " ".join(args[1:])
+                    gen_params, error = set_gen_param(gen_params, param_name, param_value)
+                    if error:
+                        print(f"Error: {error}")
+                    else:
+                        print(f"Set {param_name} = {gen_params[param_name]}")
+                    print_gen_params(gen_params)
+                    continue
+                
+                elif cmd == "params":
+                    print_gen_params(gen_params)
+                    continue
+                
                 elif cmd in ["quit", "exit", "q"]:
                     print("\nGoodbye!")
                     sys.exit(0)
@@ -170,9 +225,9 @@ def interactive_chat(dry_run: bool = False):
             print("\n[Thinking...]")
             history = current_conversation.get_history_for_model()
             if dry_run:
-                response = generate_response_dry_run(history)
+                response = generate_response_dry_run(history, **gen_params)
             else:
-                response = generate_response(history)
+                response = generate_response(history, **gen_params)
             
             # Add assistant message
             current_conversation.add_message("assistant", response)

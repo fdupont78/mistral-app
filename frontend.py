@@ -10,7 +10,7 @@ from database import (
     create_conversation, add_message, delete_conversation, update_conversation_title
 )
 import os
-from model import generate_response, generate_response_dry_run
+from model import generate_response, generate_response_dry_run, DEFAULT_GEN_PARAMS, GEN_PARAM_DESCRIPTIONS
 
 
 def init_session():
@@ -23,6 +23,10 @@ def init_session():
         st.session_state.user_input = ""
     if "generating" not in st.session_state:
         st.session_state.generating = False
+    # Initialize generation parameters with defaults
+    for param, default_val in DEFAULT_GEN_PARAMS.items():
+        if param not in st.session_state:
+            st.session_state[param] = default_val
 
 
 def load_conversation(conv_id):
@@ -91,6 +95,76 @@ def main():
     else:
         st.sidebar.info("No conversations yet. Start a new one!")
     
+    # Sidebar: Generation Parameters
+    st.sidebar.markdown("---")
+    st.sidebar.header("🎛️ Generation Parameters")
+    
+    # Float parameters (sliders)
+    st.session_state.max_new_tokens = st.sidebar.slider(
+        "max_new_tokens",
+        min_value=16,
+        max_value=2048,
+        value=int(st.session_state.max_new_tokens),
+        step=16,
+        help=GEN_PARAM_DESCRIPTIONS.get('max_new_tokens', '')
+    )
+    
+    st.session_state.temperature = st.sidebar.slider(
+        "temperature",
+        min_value=0.0,
+        max_value=2.0,
+        value=float(st.session_state.temperature),
+        step=0.05,
+        format="%.2f",
+        help=GEN_PARAM_DESCRIPTIONS.get('temperature', '')
+    )
+    
+    st.session_state.top_p = st.sidebar.slider(
+        "top_p",
+        min_value=0.0,
+        max_value=1.0,
+        value=float(st.session_state.top_p),
+        step=0.05,
+        format="%.2f",
+        help=GEN_PARAM_DESCRIPTIONS.get('top_p', '')
+    )
+    
+    st.session_state.repetition_penalty = st.sidebar.slider(
+        "repetition_penalty",
+        min_value=0.5,
+        max_value=2.0,
+        value=float(st.session_state.repetition_penalty),
+        step=0.1,
+        format="%.2f",
+        help=GEN_PARAM_DESCRIPTIONS.get('repetition_penalty', '')
+    )
+    
+    # Integer parameters (sliders)
+    st.session_state.top_k = st.sidebar.slider(
+        "top_k",
+        min_value=1,
+        max_value=200,
+        value=int(st.session_state.top_k),
+        step=1,
+        help=GEN_PARAM_DESCRIPTIONS.get('top_k', '')
+    )
+    
+    st.session_state.num_return_sequences = st.sidebar.slider(
+        "num_return_sequences",
+        min_value=1,
+        max_value=5,
+        value=int(st.session_state.num_return_sequences),
+        step=1,
+        help=GEN_PARAM_DESCRIPTIONS.get('num_return_sequences', '')
+    )
+    
+    # Boolean parameter (checkbox)
+    st.session_state.do_sample = st.sidebar.checkbox(
+        "do_sample",
+        value=bool(st.session_state.do_sample),
+        help=GEN_PARAM_DESCRIPTIONS.get('do_sample', '')
+    )
+    
     # Main chat area
     if st.session_state.current_conv_id:
         conv_data = get_conversation(st.session_state.current_conv_id)
@@ -151,11 +225,22 @@ def main():
                 
                 # Generate response
                 try:
+                    # Build generation kwargs from session state
+                    gen_kwargs = {
+                        'max_new_tokens': int(st.session_state.max_new_tokens),
+                        'temperature': float(st.session_state.temperature),
+                        'do_sample': bool(st.session_state.do_sample),
+                        'top_k': int(st.session_state.top_k),
+                        'top_p': float(st.session_state.top_p),
+                        'repetition_penalty': float(st.session_state.repetition_penalty),
+                        'num_return_sequences': int(st.session_state.num_return_sequences),
+                    }
+                    
                     # Use dry-run mode if environment variable is set
                     if os.environ.get('MISTRAL_DRY_RUN', '').lower() in ('1', 'true', 'yes'):
-                        response = generate_response_dry_run(history)
+                        response = generate_response_dry_run(history, **gen_kwargs)
                     else:
-                        response = generate_response(history)
+                        response = generate_response(history, **gen_kwargs)
                     
                     # Clear thinking, show response
                     thinking_placeholder.empty()
