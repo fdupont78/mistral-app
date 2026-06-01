@@ -10,8 +10,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
-        with:
-          enable-cache: true
       - run: uv sync --extra dev
       - name: Run ruff format
         run: uv run ruff format .
@@ -27,8 +25,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
-        with:
-          enable-cache: true
       - run: uv sync --extra dev
       - name: Run ruff check
         run: uv run ruff check .
@@ -37,9 +33,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - name: Cache uv & models
+        uses: actions/cache@v3
         with:
-          enable-cache: true
+          path: |
+            ~/.cache/uv
+            ~/.cache/huggingface
+            ~/.cache/torch
+          key: deps-${{ hashFiles('uv.lock') }}
+          restore-keys: deps-
+      - uses: astral-sh/setup-uv@v3
       - run: uv sync --extra dev,torch
       - name: Run ty
         run: uv run ty check src
@@ -48,9 +51,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - name: Cache uv & models
+        uses: actions/cache@v3
         with:
-          enable-cache: true
+          path: |
+            ~/.cache/uv
+            ~/.cache/huggingface
+            ~/.cache/torch
+          key: deps-${{ hashFiles('uv.lock') }}
+          restore-keys: deps-
+      - uses: astral-sh/setup-uv@v3
       - run: uv sync --extra torch,test
       - name: Run tests
         run: uv run pytest tests/
