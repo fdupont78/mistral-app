@@ -1,24 +1,25 @@
 """
 Pytest configuration and fixtures for Mistral App tests.
 """
-import pytest
-import sys
+
 import os
+import sys
 import tempfile
-import sqlite3
+
+import pytest
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from src.core.database import DatabaseManager
-from src.core.model import ModelManager, GenerationParams
 from src.core.conversation import Conversation, Message
+from src.core.database import DatabaseManager
+from src.core.model import GenerationParams, ModelManager
 
 
 @pytest.fixture
 def temp_db_path():
     """Create a temporary database file for testing."""
-    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
         db_path = f.name
     yield db_path
     # Cleanup
@@ -36,13 +37,13 @@ def db_manager(temp_db_path):
 @pytest.fixture
 def temp_db():
     """Create a temporary database for testing (E2E tests)."""
-    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
         db_path = f.name
-    
+
     # Create a database manager with this path
     manager = DatabaseManager(db_path=db_path)
     yield manager
-    
+
     # Cleanup
     if os.path.exists(db_path):
         os.unlink(db_path)
@@ -61,10 +62,7 @@ def sample_conversation(db_manager):
 def sample_message():
     """Create a sample message for testing."""
     return Message(
-        role="user",
-        content="Test message",
-        timestamp="2024-01-01T12:00:00",
-        message_id=1
+        role="user", content="Test message", timestamp="2024-01-01T12:00:00", message_id=1
     )
 
 
@@ -79,6 +77,7 @@ def cleanup_model_manager():
     """Reset the global model manager before each test."""
     # This ensures tests don't interfere with each other
     import src.core.model as model_module
+
     model_module._model_manager = None
     yield
 
@@ -99,18 +98,8 @@ def mock_model_manager(mocker):
 def pytest_configure(config):
     """Register custom markers."""
     config.addinivalue_line(
-        "markers", 
-        "slow: marks tests as slow (deselect with '-m \"not slow\"')"
+        "markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')"
     )
-    config.addinivalue_line(
-        "markers", 
-        "e2e: marks end-to-end tests"
-    )
-    config.addinivalue_line(
-        "markers", 
-        "unit: marks unit tests"
-    )
-    config.addinivalue_line(
-        "markers", 
-        "integration: marks integration tests"
-    )
+    config.addinivalue_line("markers", "e2e: marks end-to-end tests")
+    config.addinivalue_line("markers", "unit: marks unit tests")
+    config.addinivalue_line("markers", "integration: marks integration tests")

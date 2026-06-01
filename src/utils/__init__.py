@@ -1,3 +1,0 @@
-"""
-Utilities module for shared functionality.
-"""
