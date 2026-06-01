@@ -127,7 +127,9 @@ class ModelManager:
             )
         return self._model
 
-    def load_model(self, quant_method: str = None, model_name: str = None) -> tuple[Any, Any]:
+    def load_model(
+        self, quant_method: str | None = None, model_name: str | None = None
+    ) -> tuple[Any, Any]:
         """
         Load the model with specified quantization method.
 
@@ -204,13 +206,13 @@ class ModelManager:
     def generate_response(
         self,
         messages: list[dict[str, str]],
-        max_new_tokens: int = None,
-        temperature: float = None,
-        do_sample: bool = None,
-        top_k: int = None,
-        top_p: float = None,
-        repetition_penalty: float = None,
-        num_return_sequences: int = None,
+        max_new_tokens: int | None = None,
+        temperature: float | None = None,
+        do_sample: bool | None = None,
+        top_k: int | None = None,
+        top_p: float | None = None,
+        repetition_penalty: float | None = None,
+        num_return_sequences: int | None = None,
         **kwargs,
     ) -> str:
         """
@@ -343,7 +345,7 @@ def get_model():
     return get_model_manager().get_model()
 
 
-def load_model(quant_method: str = "fp8", model_name: str = None):
+def load_model(quant_method: str = "fp8", model_name: str | None = None):
     """Load model (backward compatibility)."""
     return get_model_manager().load_model(quant_method, model_name)
 

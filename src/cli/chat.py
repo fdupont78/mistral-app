@@ -68,7 +68,7 @@ def list_conversations():
     print("=" * 60 + "\n")
 
 
-def handle_load(conversation_id: int) -> Conversation:
+def handle_load(conversation_id: int) -> Conversation | None:
     """Load a conversation by ID."""
     try:
         conv = Conversation.load(conversation_id)
@@ -122,7 +122,7 @@ def interactive_chat(dry_run: bool = False):
     # Initialize database
     get_database_manager().init_db()
 
-    current_conversation: Conversation = None
+    current_conversation: Conversation | None = None
 
     # Initialize generation parameters with defaults
     gen_params = DEFAULT_GEN_PARAMS.to_dict().copy()
@@ -185,11 +185,11 @@ def interactive_chat(dry_run: bool = False):
                     continue
 
                 elif cmd == "delete":
-                    if current_conversation:
+                    if current_conversation is not None:
                         conv_id = current_conversation.conversation_id
                         current_conversation.delete()
                         print(f"Deleted conversation #{conv_id}")
-                        current_conversation = None
+                        current_conversation: Conversation | None = None
                     else:
                         print("Error: No active conversation")
                     continue

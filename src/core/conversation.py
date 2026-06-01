@@ -55,12 +55,10 @@ class Conversation:
     created_at: str = ""
     updated_at: str = ""
     messages: list[Message] = field(default_factory=list)
-    _db_manager: DatabaseManager | None = field(default=None, repr=False)
+    _db_manager: DatabaseManager = field(default_factory=get_database_manager, repr=False)
 
     def __post_init__(self):
-        """Initialize the database manager if not provided."""
-        if self._db_manager is None:
-            self._db_manager = get_database_manager()
+        """Initialize conversation."""
         if self.conversation_id == 0:
             # New conversation - will be saved on first message
             pass
@@ -189,7 +187,7 @@ class Conversation:
         Returns:
             List[Conversation]: List of all Conversation instances (without messages).
         """
-        manager = db_manager or get_database_manager()
+        manager = db_manager if db_manager is not None else get_database_manager()
         conversations = []
         conv_data_list = manager.list_conversations()
         for conv_data in conv_data_list:
