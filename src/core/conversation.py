@@ -2,61 +2,60 @@
 Conversation module for managing chat conversations.
 Provides Conversation and Message classes for state management.
 """
+
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
-from .database import get_database_manager, DatabaseManager
+from typing import Any
+
+from .database import DatabaseManager, get_database_manager
 
 
 @dataclass
 class Message:
     """Represents a single message in a conversation."""
+
     role: str  # 'user' or 'assistant'
     content: str
     timestamp: str = ""
     message_id: int = 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert message to dictionary."""
         return {
             "role": self.role,
             "content": self.content,
             "timestamp": self.timestamp,
-            "message_id": self.message_id
+            "message_id": self.message_id,
         }
 
     @classmethod
-    def from_tuple(cls, msg_tuple: tuple) -> 'Message':
+    def from_tuple(cls, msg_tuple: tuple) -> "Message":
         """
         Create a Message from a database tuple.
-        
+
         Args:
             msg_tuple: Tuple from database (id, conversation_id, role, content, timestamp)
-        
+
         Returns:
             Message: A new Message instance.
         """
         msg_id, conv_id, role, content, timestamp = msg_tuple
-        return cls(
-            role=role,
-            content=content,
-            timestamp=timestamp,
-            message_id=msg_id
-        )
+        return cls(role=role, content=content, timestamp=timestamp, message_id=msg_id)
 
 
 @dataclass
 class Conversation:
     """
     Represents a chat conversation with message history.
-    
+
     Manages conversation state, message history, and database persistence.
     """
+
     conversation_id: int = 0
     title: str = "New Chat"
     created_at: str = ""
     updated_at: str = ""
-    messages: List[Message] = field(default_factory=list)
-    _db_manager: Optional[DatabaseManager] = field(default=None, repr=False)
+    messages: list[Message] = field(default_factory=list)
+    _db_manager: DatabaseManager | None = field(default=None, repr=False)
 
     def __post_init__(self):
         """Initialize the database manager if not provided."""
@@ -67,37 +66,37 @@ class Conversation:
             pass
 
     @classmethod
-    def create(cls, title: str = "New Chat", db_manager: Optional[DatabaseManager] = None) -> 'Conversation':
+    def create(
+        cls, title: str = "New Chat", db_manager: DatabaseManager | None = None
+    ) -> "Conversation":
         """
         Create a new conversation in the database.
-        
+
         Args:
             title: Title for the new conversation.
             db_manager: Optional DatabaseManager instance.
-        
+
         Returns:
             Conversation: A new Conversation instance.
         """
         manager = db_manager or get_database_manager()
         conversation_id = manager.create_conversation(title)
-        return cls(
-            conversation_id=conversation_id,
-            title=title,
-            _db_manager=manager
-        )
+        return cls(conversation_id=conversation_id, title=title, _db_manager=manager)
 
     @classmethod
-    def load(cls, conversation_id: int, db_manager: Optional[DatabaseManager] = None) -> 'Conversation':
+    def load(
+        cls, conversation_id: int, db_manager: DatabaseManager | None = None
+    ) -> "Conversation":
         """
         Load a conversation from the database.
-        
+
         Args:
             conversation_id: ID of the conversation to load.
             db_manager: Optional DatabaseManager instance.
-        
+
         Returns:
             Conversation: The loaded Conversation instance.
-        
+
         Raises:
             ValueError: If conversation is not found.
         """
@@ -117,17 +116,17 @@ class Conversation:
             created_at=created_at,
             updated_at=updated_at,
             messages=message_objects,
-            _db_manager=manager
+            _db_manager=manager,
         )
 
     def add_message(self, role: str, content: str) -> Message:
         """
         Add a message to the conversation and save to database.
-        
+
         Args:
             role: Role of the message ('user' or 'assistant').
             content: Content of the message.
-        
+
         Returns:
             Message: The newly created Message instance.
         """
@@ -136,18 +135,14 @@ class Conversation:
             self.conversation_id = self._db_manager.create_conversation(self.title)
 
         message_id = self._db_manager.add_message(self.conversation_id, role, content)
-        message = Message(
-            role=role,
-            content=content,
-            message_id=message_id
-        )
+        message = Message(role=role, content=content, message_id=message_id)
         self.messages.append(message)
         return message
 
     def set_title(self, title: str):
         """
         Update the conversation title.
-        
+
         Args:
             title: New title for the conversation.
         """
@@ -162,10 +157,10 @@ class Conversation:
             self.conversation_id = 0
             self.messages = []
 
-    def get_history_for_model(self) -> List[Dict[str, str]]:
+    def get_history_for_model(self) -> list[dict[str, str]]:
         """
         Get message history formatted for the LLM.
-        
+
         Returns:
             List[Dict[str, str]]: List of message dictionaries with 'role' and 'content'.
         """
@@ -174,7 +169,7 @@ class Conversation:
     def get_last_user_message(self) -> str:
         """
         Get the content of the last user message.
-        
+
         Returns:
             str: Content of the last user message, or empty string if none found.
         """
@@ -184,13 +179,13 @@ class Conversation:
         return ""
 
     @staticmethod
-    def list_all(db_manager: Optional[DatabaseManager] = None) -> List['Conversation']:
+    def list_all(db_manager: DatabaseManager | None = None) -> list["Conversation"]:
         """
         List all conversations from the database.
-        
+
         Args:
             db_manager: Optional DatabaseManager instance.
-        
+
         Returns:
             List[Conversation]: List of all Conversation instances (without messages).
         """
@@ -199,19 +194,21 @@ class Conversation:
         conv_data_list = manager.list_conversations()
         for conv_data in conv_data_list:
             conv_id, title, created_at, updated_at = conv_data
-            conversations.append(Conversation(
-                conversation_id=conv_id,
-                title=title,
-                created_at=created_at,
-                updated_at=updated_at,
-                _db_manager=manager
-            ))
+            conversations.append(
+                Conversation(
+                    conversation_id=conv_id,
+                    title=title,
+                    created_at=created_at,
+                    updated_at=updated_at,
+                    _db_manager=manager,
+                )
+            )
         return conversations
 
-    def reload(self) -> 'Conversation':
+    def reload(self) -> "Conversation":
         """
         Reload the conversation from the database.
-        
+
         Returns:
             Conversation: A fresh instance loaded from the database.
         """

@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv sync --extra dev
+      - name: Run ruff format
+        run: uv run ruff format .
+      - name: Check diff
+        run: |
+          git diff --exit-code || (
+            echo "::error::Files need formatting. Run 'ruff format .' and commit changes."
+            exit 1
+          )
+
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv sync --extra dev
+      - name: Run ruff check
+        run: uv run ruff check .
+
+  ty:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv sync --extra dev,torch
+      - name: Run ty
+        run: uv run ty check src
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv sync --extra torch,test
+      - name: Run tests
+        run: uv run pytest tests/

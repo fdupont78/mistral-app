@@ -25,7 +25,7 @@ cd "$REPO_DIR"
 
 # 3. Install dependencies
 echo "Installing Python dependencies..."
-uv sync
+uv sync --extra torch
 
 # 4. Setup Mistral model (optional - comment out if model is already present)
 MODEL_DIR="/workspace/Ministral-3-3B-Instruct-2512"

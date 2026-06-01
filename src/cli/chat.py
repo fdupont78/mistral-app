@@ -2,11 +2,12 @@
 CLI chat interface for Mistral model.
 Provides interactive chat with conversation persistence.
 """
+
 import sys
+
 from src.core.conversation import Conversation
-from src.core.model import get_model_manager, DEFAULT_GEN_PARAMS, GEN_PARAM_DESCRIPTIONS
 from src.core.database import get_database_manager
-from datetime import datetime
+from src.core.model import DEFAULT_GEN_PARAMS, GEN_PARAM_DESCRIPTIONS, get_model_manager
 
 
 def print_welcome():
@@ -40,7 +41,7 @@ def print_message_history(conv: Conversation):
     if not conv.messages:
         print("  (No messages yet)")
         return
-    
+
     for msg in conv.messages:
         role = msg.role.upper()
         timestamp = msg.timestamp[:19] if msg.timestamp else ""
@@ -54,14 +55,16 @@ def list_conversations():
     if not conversations:
         print("\nNo conversations found.")
         return
-    
+
     print("\n" + "=" * 60)
     print("  Your Conversations")
     print("=" * 60)
     for conv in conversations:
         updated = conv.updated_at[:19] if conv.updated_at else ""
         print(f"  [{conv.conversation_id}] {conv.title}")
-        print(f"    Updated: {updated} | Messages: {len(conv.messages) if hasattr(conv, 'messages') else '0'}")
+        print(
+            f"    Updated: {updated} | Messages: {len(conv.messages) if hasattr(conv, 'messages') else '0'}"
+        )
     print("=" * 60 + "\n")
 
 
@@ -93,12 +96,12 @@ def set_gen_param(gen_params: dict, param: str, value_str: str) -> tuple:
     if param not in DEFAULT_GEN_PARAMS.to_dict():
         available = ", ".join(DEFAULT_GEN_PARAMS.to_dict().keys())
         return gen_params, f"Unknown parameter. Available: {available}"
-    
+
     try:
-        if param in ['do_sample']:
+        if param in ["do_sample"]:
             # Boolean
-            gen_params[param] = value_str.lower() in ('true', '1', 'yes', 'on')
-        elif param in ['max_new_tokens', 'top_k', 'num_return_sequences']:
+            gen_params[param] = value_str.lower() in ("true", "1", "yes", "on")
+        elif param in ["max_new_tokens", "top_k", "num_return_sequences"]:
             # Integer
             gen_params[param] = int(value_str)
         else:
@@ -112,52 +115,54 @@ def set_gen_param(gen_params: dict, param: str, value_str: str) -> tuple:
 def interactive_chat(dry_run: bool = False):
     """
     Run the interactive chat CLI.
-    
+
     Args:
         dry_run: If True, use mock responses instead of the actual model.
     """
     # Initialize database
     get_database_manager().init_db()
-    
+
     current_conversation: Conversation = None
-    
+
     # Initialize generation parameters with defaults
     gen_params = DEFAULT_GEN_PARAMS.to_dict().copy()
-    
+
     print_welcome()
     print_gen_params(gen_params)
-    
+
     # Create a default conversation
     current_conversation = Conversation.create("New Chat")
     print_conversation_info(current_conversation)
-    
+
     while True:
         try:
             if current_conversation:
                 print_conversation_info(current_conversation)
                 print_message_history(current_conversation)
-            
+
             # Get user input
             user_input = input("\n> ").strip()
-            
+
             if not user_input:
                 continue
-            
+
             # Handle commands
             if user_input.startswith("/"):
                 command = user_input[1:].strip().split()
                 cmd = command[0].lower() if command else ""
                 args = command[1:] if len(command) > 1 else []
-                
+
                 if cmd == "new":
                     current_conversation = Conversation.create("New Chat")
-                    print(f"\nStarted new conversation (ID: {current_conversation.conversation_id})")
+                    print(
+                        f"\nStarted new conversation (ID: {current_conversation.conversation_id})"
+                    )
                     continue
-                
+
                 elif cmd == "list":
                     list_conversations()
                     continue
-                
+
                 elif cmd == "load" and args:
                     try:
                         conv_id = int(args[0])
@@ -169,7 +174,7 @@ def interactive_chat(dry_run: bool = False):
                     except ValueError:
                         print("Error: Conversation ID must be a number")
                         continue
-                
+
                 elif cmd == "title" and args:
                     if current_conversation:
                         new_title = " ".join(args)
@@ -178,7 +183,7 @@ def interactive_chat(dry_run: bool = False):
                     else:
                         print("Error: No active conversation")
                     continue
-                
+
                 elif cmd == "delete":
                     if current_conversation:
                         conv_id = current_conversation.conversation_id
@@ -188,7 +193,7 @@ def interactive_chat(dry_run: bool = False):
                     else:
                         print("Error: No active conversation")
                     continue
-                
+
                 elif cmd == "set" and len(args) >= 2:
                     param_name = args[0]
                     param_value = " ".join(args[1:])
@@ -199,47 +204,47 @@ def interactive_chat(dry_run: bool = False):
                         print(f"Set {param_name} = {gen_params[param_name]}")
                     print_gen_params(gen_params)
                     continue
-                
+
                 elif cmd == "params":
                     print_gen_params(gen_params)
                     continue
-                
+
                 elif cmd in ["quit", "exit", "q"]:
                     print("\nGoodbye!")
                     sys.exit(0)
-                
+
                 elif cmd in ["help", "h"]:
                     print_welcome()
                     continue
-                
+
                 else:
                     print(f"Unknown command: /{cmd}")
                     continue
-            
+
             # Process user message
             if current_conversation is None:
                 current_conversation = Conversation.create("New Chat")
-            
+
             # Add user message
             current_conversation.add_message("user", user_input)
-            
+
             # Get model response
             print("\n[Thinking...]")
             history = current_conversation.get_history_for_model()
             model_manager = get_model_manager()
-            
+
             if dry_run:
                 response = model_manager.generate_response_dry_run(history, **gen_params)
             else:
                 response = model_manager.generate_response(history, **gen_params)
-            
+
             # Add assistant message
             current_conversation.add_message("assistant", response)
-            
+
             # Reload conversation to get updated data
             if current_conversation.conversation_id > 0:
                 current_conversation = Conversation.load(current_conversation.conversation_id)
-            
+
         except KeyboardInterrupt:
             print("\n\nUse /quit to exit")
         except EOFError:
@@ -248,4 +253,5 @@ def interactive_chat(dry_run: bool = False):
         except Exception as e:
             print(f"\nError: {e}")
             import traceback
+
             traceback.print_exc()
