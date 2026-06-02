@@ -6,67 +6,72 @@
 
 ---
 
-## 🎯 Product Vision
+## Product Vision
 
 ```
-Mistral App → HF Model Hub + RunPod
-├── 🔍 Discover models (search, filters, benchmarks)
-├── ⬇️ Download and deploy with 1 click on RunPod
-├── 🏗️ Visualize architectures (graphs from `transformers`)
-├── 📊 Compare performance (integrated benchmarks)
-└── 💬 Test in chat (Gradio/Streamlit interface)
+Mistral App -> HF Model Hub + RunPod
+├── Discover models (search, filters, benchmarks)
+├── Download and deploy with 1 click on RunPod
+├── Visualize architectures (graphs from `transformers`)
+├── Compare performance (integrated benchmarks)
+└── Test in chat (Gradio/Streamlit interface)
 ```
 
 **Unique Value**: A unified interface to explore, deploy, compare, and test LLMs from Hugging Face Hub on RunPod, with access to architectures and benchmarks.
 
 ---
 
-## 📅 Development Phases
+## Development Phases
 
-### Phase 1: Foundation (MVP - 1 week)
+### **Phase 1: Basic Chat & Manual Deployment (1 week) - COMPLETED**
 
-**Goal**: Basic integration with Hugging Face Hub and RunPod.
+**Goal**: Minimal chat interface with manual RunPod setup.
 
-#### ✅ Deliverables
-
-- Client to interact with HF Hub API (search, download, metadata).
-- Client to manage GPU instances via RunPod API.
-- Centralized model management (cache, metadata, status).
-- Basic UI to list and select models.
-- Integration with RunPod to deploy selected models.
+**Deliverables**
+- Chat API for Mistral-3-3B-Instruct-2512
+- Chat interface (Streamlit)
+- Manual RunPod setup
 
 ---
 
-### Phase 2: Visualization & Benchmarks (1 week)
+### Phase 2: RunPod API Integration (1 week)
+
+**Goal**: Automate RunPod instance management.
+
+**Deliverables**
+- Client to manage GPU instances via RunPod API.
+- Automated deployment workflow.
+- Instance lifecycle management.
+
+---
+
+### Phase 3: Hugging Face Hub Integration (1 week)
+
+**Goal**: Connect to Hugging Face Hub for model discovery and download.
+
+**Deliverables**
+- Client to interact with HF Hub API (search, download, metadata).
+- Centralized model management (cache, metadata, status).
+- Basic UI to list and select models.
+
+---
+
+### Phase 4: Visualization & Benchmarks (1 week)
 
 **Goal**: Add architecture visualization and benchmark integration.
 
-#### ✅ Deliverables
-
+**Deliverables**
 - Generate architecture graphs from `transformers` code.
 - Fetch and display performance metrics from `lmsys/chatbot-arena` and `Hugging Face Open LLM Leaderboard`.
 - UI to visualize architectures and compare benchmarks.
 
 ---
 
-### Phase 3: Deployment & Chat (1 week)
-
-**Goal**: Deploy models on RunPod and provide a chat interface to test them.
-
-#### ✅ Deliverables
-
-- Full integration with RunPod to deploy selected models.
-- Chat interface to test deployed models.
-- Storage of test results (latency, cost, responses).
-
----
-
-### Phase 4: Optimization & UX (1 week)
+### Phase 5: Optimization & UX (1 week)
 
 **Goal**: Improve user experience and optimize performance.
 
-#### ✅ Deliverables
-
+**Deliverables**
 - Error handling and user feedback.
 - Comprehensive documentation (README, guides, examples).
 - Automated tests for key features.
@@ -74,22 +79,19 @@ Mistral App → HF Model Hub + RunPod
 
 ---
 
-## 🎯 Priorities & Timeline
+## Priorities & Timeline
 
-
-| Phase                         | Priority | Duration | Main Deliverable                   |
-| ----------------------------- | -------- | -------- | ---------------------------------- |
-| 1. Foundation                 | ⭐⭐⭐⭐⭐    | 1 week   | HF Hub + RunPod integration        |
-| 2. Visualization & Benchmarks | ⭐⭐⭐⭐     | 1 week   | Architecture graphs + benchmarks   |
-| 3. Deployment & Chat          | ⭐⭐⭐⭐     | 1 week   | RunPod deployment + chat interface |
-| 4. Optimization & UX          | ⭐⭐⭐      | 1 week   | User experience and optimization   |
-
-
-**MVP**: Phases 1 + 2 + 3 = **3 weeks** for a functional first version.
+| Phase | Priority | Duration | Main Deliverable |
+| ----- | -------- | -------- | ----------------- |
+| 1. Basic Chat & Manual Deployment | High | 1 week | Chat interface + manual RunPod |
+| 2. RunPod API Integration | High | 1 week | Automated RunPod management |
+| 3. Hugging Face Hub Integration | High | 1 week | HF Hub connectivity |
+| 4. Visualization & Benchmarks | Medium | 1 week | Architecture graphs + benchmarks |
+| 5. Optimization & UX | Medium | 1 week | User experience and optimization |
 
 ---
 
-## 🚀 Next Steps
+## Next Steps
 
 1. Validate direction: Confirm HF Hub + RunPod integration is the priority.
 2. Prototype: Create a prototype of the HF Hub and RunPod clients.
