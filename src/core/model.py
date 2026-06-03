@@ -317,7 +317,7 @@ class ModelManager:
         return {"role": "assistant", "content": response}
 
 
-# Global instance for backward compatibility
+# Global instance for singleton pattern
 _model_manager = None
 
 
@@ -332,49 +332,3 @@ def get_model_manager() -> ModelManager:
     if _model_manager is None:
         _model_manager = ModelManager()
     return _model_manager
-
-
-# Backward compatibility functions (deprecated, use ModelManager directly)
-def get_tokenizer():
-    """Get tokenizer (backward compatibility)."""
-    return get_model_manager().get_tokenizer()
-
-
-def get_model():
-    """Get model (backward compatibility)."""
-    return get_model_manager().get_model()
-
-
-def load_model(quant_method: str = "fp8", model_name: str | None = None):
-    """Load model (backward compatibility)."""
-    return get_model_manager().load_model(quant_method, model_name)
-
-
-def is_model_loaded():
-    """Check if model is loaded (backward compatibility)."""
-    return get_model_manager().is_loaded()
-
-
-def is_model_loading():
-    """Check if model is loading (backward compatibility)."""
-    return get_model_manager().is_loading()
-
-
-def get_model_status():
-    """Get model status (backward compatibility)."""
-    return get_model_manager().get_status()
-
-
-def generate_response(messages: list[dict[str, str]], **kwargs) -> str:
-    """Generate response (backward compatibility)."""
-    return get_model_manager().generate_response(messages, **kwargs)
-
-
-def generate_response_dry_run(messages: list[dict[str, str]], **kwargs) -> str:
-    """Generate dry run response (backward compatibility)."""
-    return get_model_manager().generate_response_dry_run(messages, **kwargs)
-
-
-def chat_completion(messages: list[dict[str, str]], **kwargs) -> dict[str, str]:
-    """Chat completion (backward compatibility)."""
-    return get_model_manager().chat_completion(messages, **kwargs)

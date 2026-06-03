@@ -280,7 +280,7 @@ class DatabaseManager:
         return self.get_conversation(conversation_id) is not None
 
 
-# Global instance for backward compatibility
+# Global instance for singleton pattern
 _db_manager = None
 
 
@@ -295,54 +295,3 @@ def get_database_manager() -> DatabaseManager:
     if _db_manager is None:
         _db_manager = DatabaseManager()
     return _db_manager
-
-
-# Backward compatibility functions (deprecated, use DatabaseManager directly)
-def init_db():
-    """Initialize the database (backward compatibility)."""
-    get_database_manager().init_db()
-
-
-def create_conversation(title: str = "New Chat") -> int:
-    """Create a new conversation (backward compatibility)."""
-    return get_database_manager().create_conversation(title)
-
-
-def update_conversation_title(conversation_id: int, title: str):
-    """Update conversation title (backward compatibility)."""
-    get_database_manager().update_conversation_title(conversation_id, title)
-
-
-def update_conversation_timestamp(conversation_id: int):
-    """Update conversation timestamp (backward compatibility)."""
-    get_database_manager().update_conversation_timestamp(conversation_id)
-
-
-def delete_conversation(conversation_id: int):
-    """Delete a conversation (backward compatibility)."""
-    get_database_manager().delete_conversation(conversation_id)
-
-
-def add_message(conversation_id: int, role: str, content: str) -> int:
-    """Add a message (backward compatibility)."""
-    return get_database_manager().add_message(conversation_id, role, content)
-
-
-def get_conversation(conversation_id: int) -> tuple | None:
-    """Get conversation (backward compatibility)."""
-    return get_database_manager().get_conversation(conversation_id)
-
-
-def get_messages(conversation_id: int) -> list[tuple]:
-    """Get messages (backward compatibility)."""
-    return get_database_manager().get_messages(conversation_id)
-
-
-def list_conversations(limit: int = 50) -> list[tuple]:
-    """List conversations (backward compatibility)."""
-    return get_database_manager().list_conversations(limit)
-
-
-def search_conversations(query: str, limit: int = 20) -> list[tuple]:
-    """Search conversations (backward compatibility)."""
-    return get_database_manager().search_conversations(query, limit)
