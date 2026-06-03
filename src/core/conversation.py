@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .database import DatabaseManager, get_database_manager
+from .validation import sanitize_user_input, validate_conversation_title, validate_message_role
 
 
 @dataclass
@@ -78,8 +79,10 @@ class Conversation:
             Conversation: A new Conversation instance.
         """
         manager = db_manager or get_database_manager()
-        conversation_id = manager.create_conversation(title)
-        return cls(conversation_id=conversation_id, title=title, _db_manager=manager)
+        # Validate and sanitize title
+        validated_title = validate_conversation_title(title)
+        conversation_id = manager.create_conversation(validated_title)
+        return cls(conversation_id=conversation_id, title=validated_title, _db_manager=manager)
 
     @classmethod
     def load(
@@ -127,13 +130,22 @@ class Conversation:
 
         Returns:
             Message: The newly created Message instance.
+
+        Raises:
+            ValueError: If role or content is invalid.
         """
+        # Validate role and content
+        validated_role = validate_message_role(role)
+        validated_content = sanitize_user_input(content)
+
         if self.conversation_id == 0:
             # This is a new unsaved conversation, save it first
             self.conversation_id = self._db_manager.create_conversation(self.title)
 
-        message_id = self._db_manager.add_message(self.conversation_id, role, content)
-        message = Message(role=role, content=content, message_id=message_id)
+        message_id = self._db_manager.add_message(
+            self.conversation_id, validated_role, validated_content
+        )
+        message = Message(role=validated_role, content=validated_content, message_id=message_id)
         self.messages.append(message)
         return message
 
@@ -144,9 +156,11 @@ class Conversation:
         Args:
             title: New title for the conversation.
         """
-        self.title = title
+        # Validate and sanitize title
+        validated_title = validate_conversation_title(title)
+        self.title = validated_title
         if self.conversation_id > 0:
-            self._db_manager.update_conversation_title(self.conversation_id, title)
+            self._db_manager.update_conversation_title(self.conversation_id, validated_title)
 
     def delete(self):
         """Delete the conversation from the database."""

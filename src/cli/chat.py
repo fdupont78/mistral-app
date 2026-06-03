@@ -225,8 +225,12 @@ def interactive_chat(dry_run: bool = False):
             if current_conversation is None:
                 current_conversation = Conversation.create("New Chat")
 
-            # Add user message
-            current_conversation.add_message("user", user_input)
+            # Add user message with validation
+            try:
+                current_conversation.add_message("user", user_input)
+            except ValueError as e:
+                print(f"Error: {e}")
+                continue
 
             # Get model response
             print("\n[Thinking...]")

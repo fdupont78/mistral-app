@@ -8,6 +8,8 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import datetime
 
+from .validation import sanitize_user_input, validate_conversation_title, validate_message_role
+
 
 class DatabaseManager:
     """
@@ -81,6 +83,29 @@ class DatabaseManager:
                 )
             """)
 
+            # Add indexes for performance
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_conversations_updated ON conversations(updated_at)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp)"
+            )
+
+            # Add trigger to auto-update conversation timestamp on new message
+            cursor.execute("""
+                CREATE TRIGGER IF NOT EXISTS update_conversation_on_message
+                AFTER INSERT ON messages
+                FOR EACH ROW
+                BEGIN
+                    UPDATE conversations
+                    SET updated_at = datetime('now')
+                    WHERE id = NEW.conversation_id;
+                END
+            """)
+
     def create_conversation(self, title: str = "New Chat") -> int:
         """
         Create a new conversation and return its ID.
@@ -91,12 +116,14 @@ class DatabaseManager:
         Returns:
             int: The ID of the newly created conversation.
         """
+        # Validate and sanitize title
+        validated_title = validate_conversation_title(title)
         with self.get_connection() as conn:
             cursor = conn.cursor()
             now = datetime.now().isoformat()
             cursor.execute(
                 "INSERT INTO conversations (title, created_at, updated_at) VALUES (?, ?, ?)",
-                (title, now, now),
+                (validated_title, now, now),
             )
             conversation_id = cursor.lastrowid
             return conversation_id
@@ -109,11 +136,13 @@ class DatabaseManager:
             conversation_id: ID of the conversation to update.
             title: New title for the conversation.
         """
+        # Validate and sanitize title
+        validated_title = validate_conversation_title(title)
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 "UPDATE conversations SET title = ?, updated_at = ? WHERE id = ?",
-                (title, datetime.now().isoformat(), conversation_id),
+                (validated_title, datetime.now().isoformat(), conversation_id),
             )
 
     def update_conversation_timestamp(self, conversation_id: int):
@@ -152,20 +181,23 @@ class DatabaseManager:
 
         Returns:
             int: The ID of the newly created message.
+
+        Raises:
+            ValueError: If role or content is invalid.
         """
+        # Validate inputs
+        validated_role = validate_message_role(role)
+        validated_content = sanitize_user_input(content)
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
             timestamp = datetime.now().isoformat()
             cursor.execute(
                 "INSERT INTO messages (conversation_id, role, content, timestamp) VALUES (?, ?, ?, ?)",
-                (conversation_id, role, content, timestamp),
+                (conversation_id, validated_role, validated_content, timestamp),
             )
             message_id = cursor.lastrowid
-            # Update conversation timestamp in the same transaction
-            cursor.execute(
-                "UPDATE conversations SET updated_at = ? WHERE id = ?",
-                (datetime.now().isoformat(), conversation_id),
-            )
+            # Note: conversation timestamp is auto-updated by trigger
             return message_id
 
     def get_conversation(self, conversation_id: int) -> tuple | None:
@@ -261,7 +293,7 @@ class DatabaseManager:
         return self.get_conversation(conversation_id) is not None
 
 
-# Global instance for backward compatibility
+# Global instance for singleton pattern
 _db_manager = None
 
 
@@ -276,54 +308,3 @@ def get_database_manager() -> DatabaseManager:
     if _db_manager is None:
         _db_manager = DatabaseManager()
     return _db_manager
-
-
-# Backward compatibility functions (deprecated, use DatabaseManager directly)
-def init_db():
-    """Initialize the database (backward compatibility)."""
-    get_database_manager().init_db()
-
-
-def create_conversation(title: str = "New Chat") -> int:
-    """Create a new conversation (backward compatibility)."""
-    return get_database_manager().create_conversation(title)
-
-
-def update_conversation_title(conversation_id: int, title: str):
-    """Update conversation title (backward compatibility)."""
-    get_database_manager().update_conversation_title(conversation_id, title)
-
-
-def update_conversation_timestamp(conversation_id: int):
-    """Update conversation timestamp (backward compatibility)."""
-    get_database_manager().update_conversation_timestamp(conversation_id)
-
-
-def delete_conversation(conversation_id: int):
-    """Delete a conversation (backward compatibility)."""
-    get_database_manager().delete_conversation(conversation_id)
-
-
-def add_message(conversation_id: int, role: str, content: str) -> int:
-    """Add a message (backward compatibility)."""
-    return get_database_manager().add_message(conversation_id, role, content)
-
-
-def get_conversation(conversation_id: int) -> tuple | None:
-    """Get conversation (backward compatibility)."""
-    return get_database_manager().get_conversation(conversation_id)
-
-
-def get_messages(conversation_id: int) -> list[tuple]:
-    """Get messages (backward compatibility)."""
-    return get_database_manager().get_messages(conversation_id)
-
-
-def list_conversations(limit: int = 50) -> list[tuple]:
-    """List conversations (backward compatibility)."""
-    return get_database_manager().list_conversations(limit)
-
-
-def search_conversations(query: str, limit: int = 20) -> list[tuple]:
-    """Search conversations (backward compatibility)."""
-    return get_database_manager().search_conversations(query, limit)
