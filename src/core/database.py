@@ -8,6 +8,8 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import datetime
 
+from .validation import sanitize_user_input, validate_conversation_title, validate_message_role
+
 
 class DatabaseManager:
     """
@@ -114,12 +116,14 @@ class DatabaseManager:
         Returns:
             int: The ID of the newly created conversation.
         """
+        # Validate and sanitize title
+        validated_title = validate_conversation_title(title)
         with self.get_connection() as conn:
             cursor = conn.cursor()
             now = datetime.now().isoformat()
             cursor.execute(
                 "INSERT INTO conversations (title, created_at, updated_at) VALUES (?, ?, ?)",
-                (title, now, now),
+                (validated_title, now, now),
             )
             conversation_id = cursor.lastrowid
             return conversation_id
@@ -132,11 +136,13 @@ class DatabaseManager:
             conversation_id: ID of the conversation to update.
             title: New title for the conversation.
         """
+        # Validate and sanitize title
+        validated_title = validate_conversation_title(title)
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 "UPDATE conversations SET title = ?, updated_at = ? WHERE id = ?",
-                (title, datetime.now().isoformat(), conversation_id),
+                (validated_title, datetime.now().isoformat(), conversation_id),
             )
 
     def update_conversation_timestamp(self, conversation_id: int):
@@ -175,13 +181,20 @@ class DatabaseManager:
 
         Returns:
             int: The ID of the newly created message.
+
+        Raises:
+            ValueError: If role or content is invalid.
         """
+        # Validate inputs
+        validated_role = validate_message_role(role)
+        validated_content = sanitize_user_input(content)
+
         with self.get_connection() as conn:
             cursor = conn.cursor()
             timestamp = datetime.now().isoformat()
             cursor.execute(
                 "INSERT INTO messages (conversation_id, role, content, timestamp) VALUES (?, ?, ?, ?)",
-                (conversation_id, role, content, timestamp),
+                (conversation_id, validated_role, validated_content, timestamp),
             )
             message_id = cursor.lastrowid
             # Note: conversation timestamp is auto-updated by trigger

@@ -21,6 +21,7 @@ from src.core.model import (
     QUANTIZATION_METHODS,
     get_model_manager,
 )
+from src.core.validation import sanitize_user_input, validate_conversation_title
 
 
 def init_session():
@@ -245,9 +246,13 @@ def main():
                 "Conversation title", value=st.session_state.new_conv_title, key="title_input"
             )
             if new_title != st.session_state.new_conv_title:
-                manager.update_conversation_title(conv_id, new_title)
-                st.session_state.new_conv_title = new_title
-                st.rerun()
+                try:
+                    validated_title = validate_conversation_title(new_title)
+                    manager.update_conversation_title(conv_id, validated_title)
+                    st.session_state.new_conv_title = validated_title
+                    st.rerun()
+                except ValueError as e:
+                    st.error(f"Invalid title: {e}")
 
             # Display messages
             messages = load_conversation(conv_id)
@@ -282,12 +287,18 @@ def main():
             )
 
             if user_input:
-                # Add user message to DB
-                manager.add_message(conv_id, "user", user_input)
+                # Validate and sanitize user input
+                try:
+                    validated_input = sanitize_user_input(user_input)
+                    # Add user message to DB
+                    manager.add_message(conv_id, "user", validated_input)
 
-                # Display user message
-                with st.chat_message("user"):
-                    st.markdown(user_input)
+                    # Display user message
+                    with st.chat_message("user"):
+                        st.markdown(validated_input)
+                except ValueError as e:
+                    st.error(f"Invalid input: {e}")
+                    st.rerun()
 
                 # Get history for model
                 messages = load_conversation(conv_id)

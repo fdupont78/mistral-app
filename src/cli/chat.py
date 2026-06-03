@@ -8,6 +8,7 @@ import sys
 from src.core.conversation import Conversation
 from src.core.database import get_database_manager
 from src.core.model import DEFAULT_GEN_PARAMS, GEN_PARAM_DESCRIPTIONS, get_model_manager
+from src.core.validation import sanitize_user_input
 
 
 def print_welcome():
@@ -225,8 +226,12 @@ def interactive_chat(dry_run: bool = False):
             if current_conversation is None:
                 current_conversation = Conversation.create("New Chat")
 
-            # Add user message
-            current_conversation.add_message("user", user_input)
+            # Add user message with validation
+            try:
+                current_conversation.add_message("user", user_input)
+            except ValueError as e:
+                print(f"Error: {e}")
+                continue
 
             # Get model response
             print("\n[Thinking...]")
