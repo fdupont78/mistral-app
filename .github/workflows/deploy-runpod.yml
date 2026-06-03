@@ -1,0 +1,45 @@
+name: Deploy to RunPod
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to deploy (leave empty for current branch)"
+        required: false
+        default: ""
+      confirm:
+        description: "⚠️ CONFIRM by typing 'DEPLOY' (required)"
+        required: true
+        default: ""
+
+jobs:
+  deploy:
+    name: Deploy to RunPod
+    runs-on: ubuntu-latest
+    if: |
+      github.event.inputs.confirm == 'DEPLOY' &&
+      (github.repository == 'fdupont78/mistral-app' || github.event.pull_request.head.repo.fork)
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref_name }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        run: uv sync --extra torch
+
+      - name: Deploy to RunPod
+        env:
+          RUNPOD_API_KEY: ${{ secrets.RUNPOD_API_KEY }}
+          RUNPOD_TEMPLATE_ID: ${{ secrets.RUNPOD_TEMPLATE_ID || 'hsrb8il0fj' }}
+          GITHUB_BRANCH: ${{ github.event.inputs.branch || github.ref_name }}
+        run: |
+          python -m src.main deploy --branch "$GITHUB_BRANCH"

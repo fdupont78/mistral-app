@@ -47,6 +47,55 @@
             "module": "src.main",
             "args": ["list"],
             "console": "integratedTerminal"
+        },
+        {
+            "name": "RunPod: Deploy (Current Branch)",
+            "type": "python",
+            "request": "launch",
+            "module": "src.main",
+            "args": ["deploy", "--branch", "${input:branch}"],
+            "env": {
+                "RUNPOD_API_KEY": "${env:RUNPOD_API_KEY}",
+                "RUNPOD_TEMPLATE_ID": "${env:RUNPOD_TEMPLATE_ID}"
+            },
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "name": "RunPod: Deploy (Debug Mode)",
+            "type": "python",
+            "request": "launch",
+            "module": "src.main",
+            "args": ["deploy", "--branch", "master"],
+            "env": {
+                "RUNPOD_API_KEY": "${env:RUNPOD_API_KEY}",
+                "RUNPOD_TEMPLATE_ID": "${env:RUNPOD_TEMPLATE_ID}"
+            },
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "stopOnEntry": false,
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
+        },
+        {
+            "name": "RunPod: Deploy (From .env file)",
+            "type": "python",
+            "request": "launch",
+            "module": "src.main",
+            "args": ["deploy", "--branch", "master"],
+            "envFile": "${workspaceFolder}/.env",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
         }
     ]
 }

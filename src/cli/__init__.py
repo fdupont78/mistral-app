@@ -1,3 +1,1 @@
-"""
-CLI module for command-line interface.
-"""
+# CLI modules
