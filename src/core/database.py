@@ -81,6 +81,29 @@ class DatabaseManager:
                 )
             """)
 
+            # Add indexes for performance
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_conversations_updated ON conversations(updated_at)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp)"
+            )
+
+            # Add trigger to auto-update conversation timestamp on new message
+            cursor.execute("""
+                CREATE TRIGGER IF NOT EXISTS update_conversation_on_message
+                AFTER INSERT ON messages
+                FOR EACH ROW
+                BEGIN
+                    UPDATE conversations 
+                    SET updated_at = datetime('now') 
+                    WHERE id = NEW.conversation_id;
+                END
+            """)
+
     def create_conversation(self, title: str = "New Chat") -> int:
         """
         Create a new conversation and return its ID.
@@ -161,11 +184,7 @@ class DatabaseManager:
                 (conversation_id, role, content, timestamp),
             )
             message_id = cursor.lastrowid
-            # Update conversation timestamp in the same transaction
-            cursor.execute(
-                "UPDATE conversations SET updated_at = ? WHERE id = ?",
-                (datetime.now().isoformat(), conversation_id),
-            )
+            # Note: conversation timestamp is auto-updated by trigger
             return message_id
 
     def get_conversation(self, conversation_id: int) -> tuple | None:
