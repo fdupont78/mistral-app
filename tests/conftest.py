@@ -19,16 +19,16 @@ from src.core.model import GenerationParams, ModelManager
 @pytest.fixture
 def db_manager():
     """Create a DatabaseManager with a temporary database.
-    
+
     This fixture creates a fresh database for each test function,
     ensuring test isolation. The database is automatically cleaned up after the test.
     """
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
         db_path = f.name
-    
+
     manager = DatabaseManager(db_path=db_path)
     yield manager
-    
+
     # Cleanup
     if os.path.exists(db_path):
         os.unlink(db_path)
@@ -37,7 +37,7 @@ def db_manager():
 @pytest.fixture
 def temp_db():
     """Create a temporary database for testing (E2E tests).
-    
+
     Alias for db_manager for backward compatibility.
     """
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
@@ -54,7 +54,7 @@ def temp_db():
 @pytest.fixture
 def temp_db_path():
     """Create a temporary database file path for testing.
-    
+
     Use this when you need just the path, not the manager.
     """
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
@@ -68,7 +68,7 @@ def temp_db_path():
 @pytest.fixture
 def sample_conversation(db_manager):
     """Create a sample conversation for testing.
-    
+
     Creates a conversation with two messages (user and assistant) for use in tests.
     Uses the db_manager fixture to ensure proper cleanup.
     """
@@ -95,19 +95,19 @@ def gen_params():
 @pytest.fixture(autouse=True)
 def cleanup_model_manager():
     """Reset the global model manager before and after each test.
-    
+
     This ensures tests don't interfere with each other by resetting
     the singleton ModelManager instance.
     """
-    import src.core.model as model_module
     import src.core.database as database_module
+    import src.core.model as model_module
 
     # Reset before test
     model_module._model_manager = None
     database_module._db_manager = None
-    
+
     yield
-    
+
     # Reset after test
     model_module._model_manager = None
     database_module._db_manager = None
@@ -142,7 +142,7 @@ def pytest_runtest_makereport(item, call):
     """Add timing information to test reports."""
     outcome = yield
     rep = outcome.get_result()
-    
+
     # Set test duration
     if hasattr(rep, "duration"):
         setattr(rep, "duration", rep.duration)

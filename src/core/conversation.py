@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .database import DatabaseManager, get_database_manager
-from .validation import validate_conversation_title, validate_message_role, sanitize_user_input
+from .validation import sanitize_user_input, validate_conversation_title, validate_message_role
 
 
 @dataclass
@@ -145,9 +145,7 @@ class Conversation:
         message_id = self._db_manager.add_message(
             self.conversation_id, validated_role, validated_content
         )
-        message = Message(
-            role=validated_role, content=validated_content, message_id=message_id
-        )
+        message = Message(role=validated_role, content=validated_content, message_id=message_id)
         self.messages.append(message)
         return message
 

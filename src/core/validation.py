@@ -31,7 +31,7 @@ def sanitize_user_input(text: str, max_length: int = 10000) -> str:
         raise ValueError(f"Input too long (max {max_length} characters)")
 
     # Remove control characters (except newline, tab)
-    text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]', '', text)
+    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]", "", text)
 
     return text.strip()
 
@@ -60,7 +60,7 @@ def validate_conversation_title(title: str, max_length: int = 200) -> str:
         raise ValueError(f"Title too long (max {max_length} characters)")
 
     # Remove control characters
-    title = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', title)
+    title = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", title)
 
     return title.strip()
 

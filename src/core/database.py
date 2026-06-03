@@ -100,8 +100,8 @@ class DatabaseManager:
                 AFTER INSERT ON messages
                 FOR EACH ROW
                 BEGIN
-                    UPDATE conversations 
-                    SET updated_at = datetime('now') 
+                    UPDATE conversations
+                    SET updated_at = datetime('now')
                     WHERE id = NEW.conversation_id;
                 END
             """)

@@ -8,7 +8,6 @@ import sys
 from src.core.conversation import Conversation
 from src.core.database import get_database_manager
 from src.core.model import DEFAULT_GEN_PARAMS, GEN_PARAM_DESCRIPTIONS, get_model_manager
-from src.core.validation import sanitize_user_input
 
 
 def print_welcome():
