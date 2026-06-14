@@ -13,3 +13,9 @@ wheels/
 # SQLite database
 *.db
 conversations.db
+
+# Environment variables
+.env
+
+# VS Code settings (local development)
+.vscode/settings.json
