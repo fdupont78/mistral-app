@@ -5,6 +5,7 @@ description = "Mistral chat application with conversation history"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "requests>=2.33.1",
     "streamlit",
 ]
 

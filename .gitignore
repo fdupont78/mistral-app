@@ -13,3 +13,12 @@ wheels/
 # SQLite database
 *.db
 conversations.db
+
+# Environment variables
+.env
+.env.*
+.env.example
+
+# VS Code settings (local development)
+.vscode/settings.json
+.vscode/workspace.state
