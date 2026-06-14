@@ -1,6 +1,6 @@
 [project]
 name = "mistral-app"
-version = "0.2.0"
+version = "0.3.0"
 description = "Mistral chat application with conversation history"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -15,6 +15,12 @@ torch = [
     "torchvision==0.19.1",
     "transformers==4.45.2",
     "accelerate",
+]
+api = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic",
+    "python-multipart",
 ]
 test = [
     "pytest",
@@ -43,6 +49,12 @@ python-version = "3.11"
 
 [tool.uv.sources]
 transformers = { git = "https://github.com/huggingface/transformers" }
+
+[tool.uv.scripts]
+"api" = "uvicorn src.web.api.server:app --reload --port 8000"
+"react-dev" = "cd src/web/react && npm run dev"
+"streamlit" = "streamlit run src/web/streamlit/frontend.py"
+"dev" = "concurrently \"uv run api\" \"npm --prefix src/web/react run dev\" \"streamlit run src/web/streamlit/frontend.py\""
 
 [tool.pytest.ini_options]
 python_files = ["test_*.py", "*_test.py"]

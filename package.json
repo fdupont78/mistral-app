@@ -1,0 +1,24 @@
+{
+  "name": "mistral-app",
+  "version": "0.3.0",
+  "description": "Mistral chat application with Streamlit and React frontends",
+  "private": true,
+  "workspaces": [
+    "src/web/react"
+  ],
+  "scripts": {
+    "dev": "concurrently \"uv run api\" \"npm --prefix src/web/react run dev\" \"streamlit run src/web/streamlit/frontend.py\"",
+    "dev:api": "uv run api",
+    "dev:react": "npm --prefix src/web/react run dev",
+    "dev:streamlit": "streamlit run src/web/streamlit/frontend.py",
+    "build:react": "npm --prefix src/web/react run build",
+    "lint:react": "npm --prefix src/web/react run lint",
+    "preview:react": "npm --prefix src/web/react run preview"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
