@@ -21,32 +21,17 @@
                 "MISTRAL_DRY_RUN": "1"
             },
             "console": "integratedTerminal",
-            "justMyCode": false
+            "justMyCode": true
         },
         {
-            "name": "Streamlit: Run (Normal Mode)",
+            "name": "RunPod: Deploy (Debug Mode)",
             "type": "python",
             "request": "launch",
-            "module": "streamlit",
-            "args": ["run", "src/web/frontend.py"],
+            "module": "src.main",
+            "args": ["deploy", "--branch", "master"],
+            "envFile": "${workspaceFolder}/.env",
             "console": "integratedTerminal",
-            "justMyCode": false
+            "justMyCode": true,
         },
-        {
-            "name": "CLI: Chat (Dry Run)",
-            "type": "python",
-            "request": "launch",
-            "module": "src.main",
-            "args": ["chat", "--dry-run"],
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "CLI: List Conversations",
-            "type": "python",
-            "request": "launch",
-            "module": "src.main",
-            "args": ["list"],
-            "console": "integratedTerminal"
-        }
     ]
 }
